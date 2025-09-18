@@ -1,7 +1,9 @@
 import {connectToFeed} from './mqtt.js';
 import {loadConfig} from './config.js';
-import {startRibbon} from './ribbon.js'
-import {charts, toggleZoomToDataRange} from './plots.js'
+import {charts} from './plots.js'
+
+document.getElementById('myCallInput').addEventListener('change', () => { updateMyCall(); resetData();});
+document.getElementById('homeSquaresInput').addEventListener('change', () => {updateSquaresList();resetData();});
 
 for (let idx=0;idx<20;idx++) {
   var tile  = document.querySelector('.bandTileTemplate').content.cloneNode(true);
@@ -106,26 +108,24 @@ function resetTileControls(tile_el){
 	tile_el.querySelector('canvas').style = 'cursor:default;';
 }
 function setSingleOrZoom(el){
-	if(view == "Single") {
-		let z = toggleZoomToDataRange(el);
-		let c = el.querySelector('canvas');
-		if(z == 'in') {c.style = 'cursor:zoom-out;';} else {c.style = 'cursor:zoom-in;';}  
-	} else {
-		view = "Single"
-		el.querySelector('.home').classList.remove('hidden');
-		el.querySelector('.maximise').classList.add('hidden');
-		el.querySelector('.minimise').classList.add('hidden');
-		const band = el.dataset.band;
-		for (const el2 of document.querySelectorAll('.bandTile')) {
-			if(el2.dataset.band && el2.dataset.band !=band) minimiseTile(el2);
-		}
-		document.getElementById('home-button').classList.remove("inactive");
-		document.getElementById('moreColumns').classList.add("inactive");
-		document.getElementById('fewerColumns').classList.add("inactive");
-		bandsGrid.setAttribute("style", "grid-template-columns: 1fr;");	
-		el.querySelector('canvas').style = 'cursor:zoom-in;';
-		console.log("Set view single");
+	if(view == "Single") return;
+	view = "Single"
+	el.querySelector('.home').classList.remove('hidden');
+	el.querySelector('.maximise').classList.add('hidden');
+	el.querySelector('.minimise').classList.add('hidden');
+	const band = el.dataset.band;
+	for (const el2 of document.querySelectorAll('.bandTile')) {
+		if(el2.dataset.band && el2.dataset.band !=band) minimiseTile(el2);
 	}
+	document.getElementById('home-button').classList.remove("inactive");
+	document.getElementById('moreColumns').classList.add("inactive");
+	document.getElementById('fewerColumns').classList.add("inactive");
+	bandsGrid.setAttribute("style", "grid-template-columns: 1fr;");	
+	let c = el.querySelector('canvas');
+	c.style = 'width:600px;height:300px;';
+	let bt = c.closest('.bandTile');
+	bt.redraw(8);
+	console.log("Set view single");
 	checkMinimisedBands();
 }
 export function setMainViewHeight(){
@@ -155,8 +155,6 @@ function sortAndUpdateTiles() {
     for (const band of orderedBands) {
         const chart = charts.get(band);
         const tile  = document.querySelector(`.bandTile[data-band="${band}"]`);
-        chart.update('none');
-        if(view == "Home") toggleZoomToDataRange(chart.canvas, true);
         container.appendChild(tile);
     }
     setMainViewHeight();
@@ -174,4 +172,3 @@ function wavelength(band) {
 
 loadConfig();
 connectToFeed();
-startRibbon();
