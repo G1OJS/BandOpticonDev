@@ -64,18 +64,17 @@ class BandModeTile {
 	this.bandTile.dataset.band = bandMode;          
 	this.bandTile.querySelector('.bandTileTitle').textContent = bandMode;	
     this.ctx = this.canvas.getContext('2d');
-	this.scale = 2;
-	this.ctx.scale(this.scale,this.scale);
     this.bgCol = 'white';
     this.calls = new Map();
 	this.drawMap();
 	if (view == "Home") this.bandTile.classList.remove('hidden');
 	charts.set(bandMode, this);
 	console.log("Ceated chart for "+bandMode);
+	this.flag=false;
   }
   px(ll){
-    let x = (this.canvas.width*(ll[1]+180)/360)/2;
-    let y = (this.canvas.height*(90-ll[0])/180)/2;
+    let x = (1200*(ll[1]+180)/360);
+    let y = (600*(90-ll[0])/180);
     return [x,y];
   }
   updateCall(s, isHl){
@@ -92,13 +91,11 @@ class BandModeTile {
       } else {
         pcol= (cInfo.tx && cInfo.rx)? colours.txrx: (cInfo.tx? colours.tx: colours.rx);
       }
-      drawBlob(this.ctx,cInfo.p,4,pcol);
+      drawBlob(this.ctx,cInfo.p,8,pcol);
   }
 
   redraw(newScale){
 	this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-	this.ctx.scale(newScale/this.scale,newScale/this.scale);
-	this.scale = newScale;
 	this.drawMap();
     for (const cl of this.calls.keys()) {this.updateCall({call:cl, isHl:false})};
     this.showHighlights();	
@@ -117,7 +114,7 @@ class BandModeTile {
   
   drawMap(){
     this.ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-    this.ctx.lineWidth = 1;
+    this.ctx.lineWidth = 2;
     worldGeoJSON?.features.forEach(feature => {
       const geom = feature.geometry;
       if (geom.type === 'Polygon') {
@@ -138,6 +135,7 @@ class BandModeTile {
 		this.ctx.closePath();
 		this.ctx.stroke();
 	  });
+
 	}
   
   

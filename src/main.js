@@ -121,10 +121,6 @@ function setSingleOrZoom(el){
 	document.getElementById('moreColumns').classList.add("inactive");
 	document.getElementById('fewerColumns').classList.add("inactive");
 	bandsGrid.setAttribute("style", "grid-template-columns: 1fr;");	
-	let c = el.querySelector('canvas');
-	c.style = 'width:600px;height:300px;';
-	let bt = c.closest('.bandTile');
-	bt.redraw(8);
 	console.log("Set view single");
 	checkMinimisedBands();
 }
