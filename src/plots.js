@@ -34,9 +34,8 @@ export function zoom(e){
 }
 
 export function addSpot(spot) {
-	if(spot.md !="FT8") return;
 	let tile = tiles.get(spot.b+"-"+spot.md);
-	if(!tile) tile = new BandModeTile(spot.b+"-"+spot.md);
+	if(!tile) tile = new tileClass(spot.b+"-"+spot.md);
 	let isHl = (spot.sc == myCall || spot.rc == myCall);
 	let s = {call:spot.sc, sq:spot.sl, txrx:'tx', isHl:isHl};
 	tile.updateCall(s, false);
@@ -46,23 +45,22 @@ export function addSpot(spot) {
 	tile.redraw(false) // redraws highlights only
 }
 
-class BandModeTile {
-
-  constructor(bandMode) {
+class tileClass{
+  constructor(tileDataSetName) {
 	this.bandTile = freeTiles.pop(); // change this to use createelement & remove the loop from the top of main (still use template in HTML?)
 	this.canvas = this.bandTile.querySelector('canvas');
-	this.bandTile.dataset.band = bandMode;          
-	this.bandTile.querySelector('.bandTileTitle').textContent = bandMode;	
+	this.bandTile.dataset.band = tileDataSetName;          
+	this.bandTile.querySelector('.bandTileTitle').textContent = tileDataSetName;	
     this.ctx = this.canvas.getContext('2d');
 	this.canvasSize = {w:1200, h:600};
-	this.zoomParams = {scale:1.0, lat0:51, lon0:-1};
+	this.zoomParams = {scale:1.2, lat0:0, lon0:0};
     this.bgCol = 'white';
     this.calls = new Map();
 	this.connections = new Set();
 	this.drawMap();
 	if (view == "Home") this.bandTile.classList.remove('hidden');
-	tiles.set(bandMode, this);
-	console.log("Ceated chart for "+bandMode);
+	tiles.set(tileDataSetName, this);
+	console.log("Ceated chart for "+tileDataSetName);
 	this.flag=false;
   }
   px(ll){
@@ -89,7 +87,7 @@ class BandModeTile {
       } else {
         pcol= (cInfo.tx && cInfo.rx)? colours.txrx: (cInfo.tx? colours.tx: colours.rx);
       }
-      this.drawBlob(this.ctx,cInfo.p,8,pcol);
+      this.drawBlob(this.ctx,cInfo.p,12,pcol);
   }
   redraw(redrawAll){
     for (const cl of this.calls.keys()) { 

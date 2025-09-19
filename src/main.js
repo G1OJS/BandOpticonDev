@@ -5,7 +5,7 @@ import {zoom} from './plots.js'
 document.getElementById('myCallInput').addEventListener('change', () => { updateMyCall(); resetData();});
 document.getElementById('homeSquaresInput').addEventListener('change', () => {updateSquaresList();resetData();});
 
-for (let idx=0;idx<20;idx++) {
+for (let idx=0;idx<100;idx++) {
   var tile  = document.querySelector('.bandTileTemplate').content.cloneNode(true);
   document.querySelector('#bandsGrid').appendChild(tile);
 }
