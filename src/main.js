@@ -58,8 +58,6 @@ function resetData(){
 	freeTiles = Array.from(document.querySelectorAll('.bandTile'));
 }
 
-
-
 function hideHeaderAndFooter(clicked){
 	clicked.nextElementSibling.classList.remove('hidden');
 	clicked.classList.add('hidden');

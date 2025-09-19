@@ -40,7 +40,7 @@ export function addSpot(spot) {
 class BandModeTile {
 
   constructor(bandMode) {
-	this.bandTile = freeTiles.pop();
+	this.bandTile = freeTiles.pop(); // change this to use createelement & remove the loop from the top of main (still use template in HTML?)
 	this.canvas = this.bandTile.querySelector('canvas');
 	this.bandTile.dataset.band = bandMode;          
 	this.bandTile.querySelector('.bandTileTitle').textContent = bandMode;	
