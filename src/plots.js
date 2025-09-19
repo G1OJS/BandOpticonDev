@@ -1,10 +1,6 @@
 import {myCall} from './config.js';
 import {mhToLatLong} from './geo.js'
-import {colours, view, setMainViewHeight, freeTiles} from './main.js'
-
-export var tiles = new Map();
-export var activeModes = new Set();
-export var callLocations = new Map();
+import {colours, view, setMainViewHeight, tiles, freeTiles, callLocations} from './main.js'
 
 let worldGeoJSON = null;
 
@@ -14,17 +10,6 @@ fetch('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_
 	console.log("GeoJSON loaded:", data);
     worldGeoJSON = data;
   });
-
-export function resetData(){
-	tiles.forEach(chart => {chart.destroy()});
-	for (const el of document.querySelectorAll('.bandTile')) el.classList.add('hidden');
-	tiles = new Map();
-	activeModes = new Set();
-	tileCanvases = Array.from(document.querySelectorAll('.bandCanvas'));
-	freeCanvases = [...tileCanvases];
-	callLocations = new Map(); 
-	startRibbon();
-}
 
 export function zoom(e){
 	let cvs = e.target;
@@ -41,7 +26,6 @@ export function zoom(e){
 
 export function addSpot(spot) {
 	if(spot.md !="FT8") return;
-	activeModes.add(spot.md);
 	let tile = tiles.get(spot.b+"-"+spot.md);
 	if(!tile) tile = new BandModeTile(spot.b+"-"+spot.md);
 	let isHl = (spot.sc == myCall || spot.rc == myCall);

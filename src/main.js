@@ -1,6 +1,6 @@
 import {connectToFeed} from './mqtt.js';
-import {loadConfig} from './config.js';
-import {tiles, zoom} from './plots.js'
+import {loadConfig, updateMyCall, updateSquaresList} from './config.js';
+import {zoom} from './plots.js'
 
 document.getElementById('myCallInput').addEventListener('change', () => { updateMyCall(); resetData();});
 document.getElementById('homeSquaresInput').addEventListener('change', () => {updateSquaresList();resetData();});
@@ -9,7 +9,9 @@ for (let idx=0;idx<20;idx++) {
   var tile  = document.querySelector('.bandTileTemplate').content.cloneNode(true);
   document.querySelector('#bandsGrid').appendChild(tile);
 }
-export const freeTiles = Array.from(document.querySelectorAll('.bandTile')); 
+export var callLocations = new Map();
+export var tiles = new Map();
+export var freeTiles = Array.from(document.querySelectorAll('.bandTile')); 
 
 function bandOf(el) 	{return el.closest('.bandTile')?.dataset.band ?? null;}
 function actionOf(el) 	{return el.dataset.action || null;}
@@ -48,6 +50,15 @@ mainView.addEventListener('click', e => {if(actionOf(e.target)=='home') restoreA
 
 mainViewTray.addEventListener("click", e => {if(actionOf(e.target)=='hideHeaderAndFooter') hideHeaderAndFooter(e.target)});
 mainViewTray.addEventListener("click", e => {if(actionOf(e.target)=='restoreHeaderAndFooter') restoreHeaderAndFooter(e.target);}); // 
+
+function resetData(){
+	for (const el of document.querySelectorAll('.bandTile')) el.classList.add('hidden');
+	tiles = new Map();
+	callLocations = new Map(); 
+	freeTiles = Array.from(document.querySelectorAll('.bandTile'));
+}
+
+
 
 function hideHeaderAndFooter(clicked){
 	clicked.nextElementSibling.classList.remove('hidden');

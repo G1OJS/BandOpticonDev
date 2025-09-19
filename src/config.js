@@ -34,20 +34,12 @@ export function updateSquaresList(event) {
 
 }
 
-export function updatePurgeMins(event) {
-    purgeMinutes = document.getElementById('purgeMinutesInput').value;
-    console.log("Purge mins updated to " + purgeMinutes);
-    saveConfig();
-}
-
 export function saveConfig() {
     console.log("Saving config:");
     localStorage.setItem('squaresList', JSON.stringify(squaresList));
     console.log("Saved Squares List: " + squaresList);
     localStorage.setItem('myCall', myCall);
     console.log("Saved myCall: " + myCall);
-    localStorage.setItem('purgeMinutes', purgeMinutes);
-    console.log("Saved purgeMinutes: " + purgeMinutes);
 }
 
 export function loadConfig() {
@@ -81,14 +73,4 @@ export function loadConfig() {
     }
     document.getElementById("myCallInput").value = myCall;
 
-    // purgeMinutes (string, convert to number)
-    let storedPurge = localStorage.getItem('purgeMinutes');
-    if (storedPurge && !isNaN(storedPurge)) {
-        purgeMinutes = Number(storedPurge);
-        console.log("Loaded purge minutes: " + purgeMinutes);
-    } else {
-        purgeMinutes = defaultPurgeMins;
-        console.log("No valid purgeMinutes found: default applied.");
-    }
-    //document.getElementById("purgeMinutesInput").value = purgeMinutes;
 }
