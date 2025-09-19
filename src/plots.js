@@ -2,7 +2,7 @@ import {myCall} from './config.js';
 import {mhToLatLong} from './geo.js'
 import {colours, view, setMainViewHeight, freeTiles} from './main.js'
 
-export var charts = new Map();
+export var tiles = new Map();
 export var activeModes = new Set();
 export var callLocations = new Map();
 
@@ -16,9 +16,9 @@ fetch('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_
   });
 
 export function resetData(){
-	charts.forEach(chart => {chart.destroy()});
+	tiles.forEach(chart => {chart.destroy()});
 	for (const el of document.querySelectorAll('.bandTile')) el.classList.add('hidden');
-	charts = new Map();
+	tiles = new Map();
 	activeModes = new Set();
 	tileCanvases = Array.from(document.querySelectorAll('.bandCanvas'));
 	freeCanvases = [...tileCanvases];
@@ -26,43 +26,31 @@ export function resetData(){
 	startRibbon();
 }
 
-export function hideUnwatchedModeLayers(mode) {
-  charts.forEach(chart => {
-    chart.data.datasets.forEach(ds => {
-      chart.getDatasetMeta(chart.data.datasets.indexOf(ds)).hidden = ds.label.split("_")[0] != mode;
-    });
-  });
-}
-
 export function zoom(e){
 	let cvs = e.target;
-	let chart = charts.get(e.target.closest('.bandTile').dataset.band);
+	let tile = tiles.get(e.target.closest('.bandTile').dataset.band);
 	let rect = cvs.getBoundingClientRect();
     let mx = e.clientX - rect.left;
     let my = e.clientY - rect.top;
-	chart.zoomParams.scale =  (chart.zoomParams.scale==1)? 2:1;
-	chart.redraw();
-}
-
-function getLocation(call, callSq){
-	if(!callLocations.get(call)) {
-		let ll = mhToLatLong(callSq);
-		callLocations.set(call, {x:ll[1], y:ll[0]});
-	}
-	return callLocations.get(call);
+	tile.clear();
+	tile.zoomParams.scale =  (tile.zoomParams.scale==1)? 2:1;
+	tile.drawMap();
+	tile.redraw(true);
+	tile.redraw(false) // redraws highlights only
 }
 
 export function addSpot(spot) {
 	if(spot.md !="FT8") return;
 	activeModes.add(spot.md);
-	let tile = charts.get(spot.b+"-"+spot.md);
+	let tile = tiles.get(spot.b+"-"+spot.md);
 	if(!tile) tile = new BandModeTile(spot.b+"-"+spot.md);
 	let isHl = (spot.sc == myCall || spot.rc == myCall);
 	let s = {call:spot.sc, sq:spot.sl, txrx:'tx', isHl:isHl};
-	tile.updateCall(s);
+	tile.updateCall(s, false);
 	let r = {call:spot.rc, sq:spot.rl, txrx:'rx', isHl:isHl};
-	tile.updateCall(r);
+	tile.updateCall(r, false);
 	tile.updateConn(s,r);
+	tile.redraw(false) // redraws highlights only
 }
 
 class BandModeTile {
@@ -77,9 +65,10 @@ class BandModeTile {
 	this.zoomParams = {scale:1.0, lat0:0, lon0:0};
     this.bgCol = 'white';
     this.calls = new Map();
+	this.connections = new Set();
 	this.drawMap();
 	if (view == "Home") this.bandTile.classList.remove('hidden');
-	charts.set(bandMode, this);
+	tiles.set(bandMode, this);
 	console.log("Ceated chart for "+bandMode);
 	this.flag=false;
   }
@@ -91,13 +80,14 @@ class BandModeTile {
 	let y = this.canvasSize.h*ynorm*z.scale;
     return [x,y];
   }
-  updateCall(s){
+  updateCall(s, redrawAll){
       let cInfo = this.calls.get(s.call);
       if (!cInfo) {
 		let sq = s.sq;
         cInfo = {p:this.px(mhToLatLong(sq)), sq:sq, tx:s.txrx=='tx',rx:s.txrx=='rx', isHl:s.isHl};
         this.calls.set(s.call, cInfo);
       }
+	  if(redrawAll) cInfo.p = this.px(mhToLatLong(cInfo.sq)); // if redrawing All, call will be in this.calls and we just update position for new zoom
 	  cInfo.tx ||= s.txrx=='tx';
       cInfo.rx ||= s.txrx=='rx';
       let pcol = null;
@@ -106,30 +96,27 @@ class BandModeTile {
       } else {
         pcol= (cInfo.tx && cInfo.rx)? colours.txrx: (cInfo.tx? colours.tx: colours.rx);
       }
-      drawBlob(this.ctx,cInfo.p,8,pcol);
+      this.drawBlob(this.ctx,cInfo.p,8,pcol);
   }
-
-  redraw(){
-	this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-	this.drawMap();
-    for (const callrec of this.calls.entries()) {
-		let cInfo = this.calls.get(callrec[0]);
-		cInfo.p = this.px(mhToLatLong(cInfo.sq));
-        this.calls.set(callrec[0], cInfo);
-		this.updateCall({call:callrec[0]});
-	};
-    this.showHighlights();	
+  redraw(redrawAll){
+    for (const cl of this.calls.keys()) { 
+	    let cInfo = this.calls.get(cl);
+		if(cInfo.hl || redrawAll) this.updateCall({call:cl}, redrawAll);
+	}  
+	for (const conn of this.connections){
+		let sInfo = this.calls.get(conn.split("|")[0]);
+		let rInfo = this.calls.get(conn.split("|")[1]);
+		let isHl = sInfo.isHl || rInfo.isHl;
+		if(isHl || redrawAll) this.drawLine(this.ctx, sInfo.p, rInfo.p, isHl? colours.connhl:colours.conn);
+	}
   }
-  
-  showHighlights(){
-    for (const cl of this.calls.keys()) { if(this.calls.get(cl).hl) this.updateCall({call:cl, isHl:true})}   
-  }
-  
   updateConn(s,r){
-     let sInfo = this.calls.get(s.call);
+	 let conn = s.call+"|"+r.call;
+	 this.connections.add(conn);
+	 let sInfo = this.calls.get(s.call);
      let rInfo = this.calls.get(r.call);
      let col = (sInfo.isHl || rInfo.isHl)? colours.connhl:colours.conn;
-     drawLine(this.ctx, sInfo.p, rInfo.p, col)
+     this.drawLine(this.ctx, sInfo.p, rInfo.p, col)
   }
   
   drawMap(){
@@ -157,24 +144,26 @@ class BandModeTile {
 	  });
 
 	}
+	
+	drawBlob(ctx,xy,sz,col){
+		ctx.fillStyle = col;
+		ctx.beginPath();
+		ctx.arc(xy[0],xy[1],sz/2,0,6.282);
+		ctx.fill();
+	}
+	
+	drawLine(ctx,p0,p1,col){
+		ctx.strokeStyle = col;
+		ctx.lineWidth=1;
+		ctx.beginPath();
+		ctx.moveTo(p0[0],p0[1]);
+		ctx.lineTo(p1[0],p1[1]);
+		ctx.stroke();
+	}
   
-  
-}
-
-function drawBlob(ctx,xy,sz,col){
-  ctx.fillStyle = col;
-  ctx.beginPath();
-  ctx.arc(xy[0],xy[1],sz/2,0,6.282);
-  ctx.fill();
-}
-
-function drawLine(ctx,p0,p1,col){
-    ctx.strokeStyle = col;
-    ctx.lineWidth=1;
-    ctx.beginPath();
-    ctx.moveTo(p0[0],p0[1]);
-    ctx.lineTo(p1[0],p1[1]);
-    ctx.stroke();
+    clear(){
+	  this.ctx.clearRect(0,0, 2000,2000);
+	}
 }
 
 

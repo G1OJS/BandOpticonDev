@@ -1,6 +1,6 @@
 import {connectToFeed} from './mqtt.js';
 import {loadConfig} from './config.js';
-import {charts, zoom} from './plots.js'
+import {tiles, zoom} from './plots.js'
 
 document.getElementById('myCallInput').addEventListener('change', () => { updateMyCall(); resetData();});
 document.getElementById('homeSquaresInput').addEventListener('change', () => {updateSquaresList();resetData();});
@@ -146,9 +146,9 @@ function addRemoveColumns(direction){
 }
 
 function sortAndUpdateTiles() {
-    const orderedBands = Array.from(charts.keys()).sort((a, b) => wavelength(b) - wavelength(a));
+    const orderedBands = Array.from(tiles.keys()).sort((a, b) => wavelength(b) - wavelength(a));
     for (const band of orderedBands) {
-        const chart = charts.get(band);
+        const chart = tiles.get(band);
         const tile  = bandsGrid.querySelector(`.bandTile[data-band="${band}"]`);
         bandsGrid.appendChild(tile);
     }
