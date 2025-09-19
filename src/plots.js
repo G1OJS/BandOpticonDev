@@ -34,6 +34,16 @@ export function hideUnwatchedModeLayers(mode) {
   });
 }
 
+export function zoom(e){
+	let cvs = e.target;
+	let chart = charts.get(e.target.closest('.bandTile').dataset.band);
+	let rect = cvs.getBoundingClientRect();
+    let mx = e.clientX - rect.left;
+    let my = e.clientY - rect.top;
+	chart.zoomParams.scale =  (chart.zoomParams.scale==1)? 2:1;
+	chart.redraw();
+}
+
 function getLocation(call, callSq){
 	if(!callLocations.get(call)) {
 		let ll = mhToLatLong(callSq);
@@ -48,12 +58,11 @@ export function addSpot(spot) {
 	let tile = charts.get(spot.b+"-"+spot.md);
 	if(!tile) tile = new BandModeTile(spot.b+"-"+spot.md);
 	let isHl = (spot.sc == myCall || spot.rc == myCall);
-	let s = {call:spot.sc, sq:spot.sl, txrx:'tx'};
-	tile.updateCall(s, isHl);
-	let r = {call:spot.rc, sq:spot.rl, txrx:'rx'};
-	tile.updateCall(r, isHl);
-	tile.updateConn(s,r, isHl);
-	tile.redraw(2);
+	let s = {call:spot.sc, sq:spot.sl, txrx:'tx', isHl:isHl};
+	tile.updateCall(s);
+	let r = {call:spot.rc, sq:spot.rl, txrx:'rx', isHl:isHl};
+	tile.updateCall(r);
+	tile.updateConn(s,r);
 }
 
 class BandModeTile {
@@ -64,6 +73,8 @@ class BandModeTile {
 	this.bandTile.dataset.band = bandMode;          
 	this.bandTile.querySelector('.bandTileTitle').textContent = bandMode;	
     this.ctx = this.canvas.getContext('2d');
+	this.canvasSize = {w:1200, h:600};
+	this.zoomParams = {scale:1.0, lat0:0, lon0:0};
     this.bgCol = 'white';
     this.calls = new Map();
 	this.drawMap();
@@ -73,17 +84,21 @@ class BandModeTile {
 	this.flag=false;
   }
   px(ll){
-    let x = (1200*(ll[1]+180)/360);
-    let y = (600*(90-ll[0])/180);
+    let z = this.zoomParams;
+	let xnorm = (ll[1] - z.lon0 + 180)/360;
+    let ynorm = (-ll[0] - z.lat0 +90)/180;
+	let x = this.canvasSize.w*xnorm*z.scale;
+	let y = this.canvasSize.h*ynorm*z.scale;
     return [x,y];
   }
-  updateCall(s, isHl){
+  updateCall(s){
       let cInfo = this.calls.get(s.call);
       if (!cInfo) {
-        cInfo = {p:this.px(mhToLatLong(s.sq)), sq:s.sq, tx:s.txrx=='tx',rx:s.txrx=='rx', isHl:s.isHl};
+		let sq = s.sq;
+        cInfo = {p:this.px(mhToLatLong(sq)), sq:sq, tx:s.txrx=='tx',rx:s.txrx=='rx', isHl:s.isHl};
         this.calls.set(s.call, cInfo);
       }
-      cInfo.tx ||= s.txrx=='tx';
+	  cInfo.tx ||= s.txrx=='tx';
       cInfo.rx ||= s.txrx=='rx';
       let pcol = null;
       if(cInfo.isHl){
@@ -94,10 +109,15 @@ class BandModeTile {
       drawBlob(this.ctx,cInfo.p,8,pcol);
   }
 
-  redraw(newScale){
+  redraw(){
 	this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 	this.drawMap();
-    for (const cl of this.calls.keys()) {this.updateCall({call:cl, isHl:false})};
+    for (const callrec of this.calls.entries()) {
+		let cInfo = this.calls.get(callrec[0]);
+		cInfo.p = this.px(mhToLatLong(cInfo.sq));
+        this.calls.set(callrec[0], cInfo);
+		this.updateCall({call:callrec[0]});
+	};
     this.showHighlights();	
   }
   
@@ -105,10 +125,10 @@ class BandModeTile {
     for (const cl of this.calls.keys()) { if(this.calls.get(cl).hl) this.updateCall({call:cl, isHl:true})}   
   }
   
-  updateConn(s,r, isHl){
+  updateConn(s,r){
      let sInfo = this.calls.get(s.call);
      let rInfo = this.calls.get(r.call);
-     let col = (isHl)? colours.connhl:colours.conn;
+     let col = (sInfo.isHl || rInfo.isHl)? colours.connhl:colours.conn;
      drawLine(this.ctx, sInfo.p, rInfo.p, col)
   }
   

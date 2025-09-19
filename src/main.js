@@ -1,6 +1,6 @@
 import {connectToFeed} from './mqtt.js';
 import {loadConfig} from './config.js';
-import {charts} from './plots.js'
+import {charts, zoom} from './plots.js'
 
 document.getElementById('myCallInput').addEventListener('change', () => { updateMyCall(); resetData();});
 document.getElementById('homeSquaresInput').addEventListener('change', () => {updateSquaresList();resetData();});
@@ -40,13 +40,14 @@ setInterval(() => sortAndUpdateTiles(), 1000);
 const mainView = document.querySelector('#mainView');
 const bandsGrid = document.querySelector('#bandsGrid');
 const mainViewTray = document.querySelector('#mainViewTray');
-document.querySelector('#bandsGrid').addEventListener('click', e => {if(actionOf(e.target)=='minimise') minimiseTile(e.target.closest('.bandTile'));});
-document.querySelector('#mainViewTray').addEventListener('click', e => {if(e.target.classList?.contains('bandButton')) restoreTile(e.target);});
-document.querySelector('#bandsGrid').addEventListener('click', e => {if(actionOf(e.target)=='setSingleOrZoom') setSingleOrZoom(e.target.closest('.bandTile'));});
-document.querySelector('#mainView').addEventListener('click', e => {if(actionOf(e.target)=='home') restoreAll(e.target.closest('.bandTile'));}); 	// split here to remember columns and tray bands
+bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='minimise') minimiseTile(e.target.closest('.bandTile'));});
+mainViewTray.addEventListener('click', e => {if(e.target.classList?.contains('bandButton')) restoreTile(e.target);});
+bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='setSingle') setSingle(e.target.closest('.bandTile'));});
+bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='zoom') zoom(e);});
+mainView.addEventListener('click', e => {if(actionOf(e.target)=='home') restoreAll(e.target.closest('.bandTile'));}); 	// split here to remember columns and tray bands
 
-document.querySelector('#mainViewTray').addEventListener("click", e => {if(actionOf(e.target)=='hideHeaderAndFooter') hideHeaderAndFooter(e.target)});
-document.querySelector('#mainViewTray').addEventListener("click", e => {if(actionOf(e.target)=='restoreHeaderAndFooter') restoreHeaderAndFooter(e.target);}); // 
+mainViewTray.addEventListener("click", e => {if(actionOf(e.target)=='hideHeaderAndFooter') hideHeaderAndFooter(e.target)});
+mainViewTray.addEventListener("click", e => {if(actionOf(e.target)=='restoreHeaderAndFooter') restoreHeaderAndFooter(e.target);}); // 
 
 function hideHeaderAndFooter(clicked){
 	clicked.nextElementSibling.classList.remove('hidden');
@@ -107,14 +108,14 @@ function resetTileControls(tile_el){
 	tile_el.querySelector('.minimise').classList.remove('hidden');
 	tile_el.querySelector('canvas').style = 'cursor:default;';
 }
-function setSingleOrZoom(el){
+function setSingle(el){
 	if(view == "Single") return;
 	view = "Single"
 	el.querySelector('.home').classList.remove('hidden');
 	el.querySelector('.maximise').classList.add('hidden');
 	el.querySelector('.minimise').classList.add('hidden');
 	const band = el.dataset.band;
-	for (const el2 of document.querySelectorAll('.bandTile')) {
+	for (const el2 of bandsGrid.querySelectorAll('.bandTile')) {
 		if(el2.dataset.band && el2.dataset.band !=band) minimiseTile(el2);
 	}
 	document.getElementById('home-button').classList.remove("inactive");
@@ -140,18 +141,16 @@ function addRemoveColumns(direction){
 	if(view !="Home") return;
 	if (direction == "more") nColumns += (nColumns <10);
 	if (direction == "fewer") nColumns -= (nColumns >1);
-	const el = document.getElementById('bandsGrid');
-	el.setAttribute("style", "grid-template-columns: repeat("+nColumns+",1fr)");
-	console.log(document.getElementById('bandsGrid').elementStyle);
+	bandsGrid.setAttribute("style", "grid-template-columns: repeat("+nColumns+",1fr)");
+	console.log(bandsGrid.elementStyle);
 }
 
 function sortAndUpdateTiles() {
-    const container = document.getElementById('bandsGrid');
     const orderedBands = Array.from(charts.keys()).sort((a, b) => wavelength(b) - wavelength(a));
     for (const band of orderedBands) {
         const chart = charts.get(band);
-        const tile  = document.querySelector(`.bandTile[data-band="${band}"]`);
-        container.appendChild(tile);
+        const tile  = bandsGrid.querySelector(`.bandTile[data-band="${band}"]`);
+        bandsGrid.appendChild(tile);
     }
     setMainViewHeight();
 }
