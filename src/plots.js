@@ -15,10 +15,19 @@ export function zoom(e){
 	let cvs = e.target;
 	let tile = tiles.get(e.target.closest('.bandTile').dataset.band);
 	let rect = cvs.getBoundingClientRect();
-    let mx = e.clientX - rect.left;
-    let my = e.clientY - rect.top;
+	let xnorm = (e.clientX - rect.left) / (rect.right-rect.left);
+	let ynorm = (e.clientY - rect.top)  / (rect.bottom-rect.top);
+	console.log(rect.left, e.clientX, rect.right);
+	console.log(rect.top, e.clientY, rect.bottom);
+	 
+	let ll = [(-180*(ynorm-0.5) / tile.zoomParams.scale) + tile.zoomParams.lat0  , (360*(xnorm-0.5)/tile.zoomParams.scale) + tile.zoomParams.lon0 ];
+	console.log(xnorm, ynorm);
+	console.log(ll);
+	tile.zoomParams.scale = tile.zoomParams.scale *1.2;
+	tile.zoomParams.lat0 = ll[0];
+	tile.zoomParams.lon0 = ll[1];
+	console.log(tile.zoomParams);
 	tile.clear();
-	tile.zoomParams.scale =  (tile.zoomParams.scale==1)? 2:1;
 	tile.drawMap();
 	tile.redraw(true);
 	tile.redraw(false) // redraws highlights only
@@ -46,7 +55,7 @@ class BandModeTile {
 	this.bandTile.querySelector('.bandTileTitle').textContent = bandMode;	
     this.ctx = this.canvas.getContext('2d');
 	this.canvasSize = {w:1200, h:600};
-	this.zoomParams = {scale:1.0, lat0:0, lon0:0};
+	this.zoomParams = {scale:1.0, lat0:51, lon0:-1};
     this.bgCol = 'white';
     this.calls = new Map();
 	this.connections = new Set();
@@ -58,11 +67,11 @@ class BandModeTile {
   }
   px(ll){
     let z = this.zoomParams;
-	let xnorm = (ll[1] - z.lon0 + 180)/360;
-    let ynorm = (-ll[0] - z.lat0 +90)/180;
-	let x = this.canvasSize.w*xnorm*z.scale;
-	let y = this.canvasSize.h*ynorm*z.scale;
-    return [x,y];
+	let xnorm = 0.5 + z.scale*(ll[1] - z.lon0)/360;
+    let ynorm = 0.5 + z.scale*(ll[0] - z.lat0)/180;
+	let x = this.canvasSize.w*xnorm;
+	let y = this.canvasSize.h*ynorm;
+    return [x,this.canvasSize.h-y];
   }
   updateCall(s, redrawAll){
       let cInfo = this.calls.get(s.call);
