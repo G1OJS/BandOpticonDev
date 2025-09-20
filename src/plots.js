@@ -91,11 +91,11 @@ class tile{
 		this.ctx.stroke();
 	}
 	redraw(redrawAll){
-		for (const [call, callRecord] of this.callRecords.entries()) { 
-			if(callRecord.isHl || redrawAll) this.drawCall(call);
-		}
 		for (const [conn, connRecord] of this.connRecords.entries()){
 			if(connRecord.isHl || redrawAll) this.drawConnection(conn);
+		}
+		for (const [call, callRecord] of this.callRecords.entries()) { 
+			if(callRecord.isHl || redrawAll) this.drawCall(call);
 		}
 	}
 	drawMap(){

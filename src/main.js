@@ -19,7 +19,7 @@ function floorXbyY(x,y){
 
 export const colours =   {tx:'rgba(230, 30, 30, .3)', 	rx:		'rgba(30, 230, 30, .3)',	txrx:'rgba(20, 20, 250, .3)',
 						  txhl:'rgba(255, 0, 0, 1)', 	rxhl:	'rgba(0, 255, 0, 1)',		txrxhl:'rgba(0, 0, 255, 1)',
-					conn:'rgba(150, 150, 250, .2)' , connhl: 'rgba(50, 50, 250, .8)'
+					conn:'rgba(80, 180, 250, .2)' , connhl: 'rgba(50, 50, 250, .6)'
 					};
 
 document.getElementById('legendMarkerTx').style.background = colours.tx;
