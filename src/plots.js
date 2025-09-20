@@ -99,6 +99,7 @@ class tileInstance{
 		}
 		for (const [conn, connRecord] of this.connRecords.entries()){
 			if(connRecord.hl || redrawAll) this.drawConnection(conn);
+
 		}
 	}
 	drawMap(){
@@ -134,11 +135,16 @@ class tileInstance{
 		this.zoomParams.lat0 = (-180*(ynorm-0.5) / this.zoomParams.scale) + this.zoomParams.lat0;
 		this.zoomParams.lon0 = ( 360*(xnorm-0.5) / this.zoomParams.scale) + this.zoomParams.lon0;
 		this.zoomParams.scale = this.zoomParams.scale *1.2;
-		this.clear();
-		this.drawMap();
+		for (var [call, callRecord] of this.callRecords.entries()) { 
+			let c = callRecord;
+			let p = this.px(mhToLatLong(callRecord.sq));
+			this.callRecords.set(call,  {p:p, sq:c.sq, tx:c.tx, rx:c.rx, isHl:c.isHl} );
+		}
 		for (const callRecord of this.callRecords) { 
 			callRecord[1].p = this.px(mhToLatLong(callRecord[1].sq));
 		}
+		this.clear();
+		this.drawMap();
 		this.redraw(true); // full redraw
 		this.redraw(false); // redraws highlights only
 	}
