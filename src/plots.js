@@ -94,11 +94,11 @@ class tileInstance{
 		this.ctx.stroke();
 	}
 	redraw(redrawAll){
-		for (const callRecord of this.callRecords) { 
-			if(callRecord.hl || redrawAll) this.drawCall(this.ctx, callRecord);
+		for (const [call, callRecord] of this.callRecords.entries()) { 
+			if(callRecord.hl || redrawAll) this.drawCall(this.ctx, call);
 		}
-		for (const connRecord of this.connRecords.keys()){
-			if(connRecord.hl || redrawAll) this.drawConenction(this.ctx, connRecord);
+		for (const [conn, connRecord] of this.connRecords.entries()){
+			if(connRecord.hl || redrawAll) this.drawConenction(this.ctx, conn);
 		}
 	}
 	drawMap(){
