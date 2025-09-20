@@ -80,7 +80,6 @@ class tileInstance{
 	recordConnection(sInfo, rInfo){
 		let conn = sInfo.call+"|"+rInfo.call
 		let connRecord = this.connRecords.get(conn) || this.connRecords.set(conn, {isHl:(sInfo.isHl || rInfo.isHl)});
-//		this.connRecords.set(conn, {isHl:(sInfo.isHl || rInfo.isHl)});
 		this.drawConnection(conn)
 	}
 	drawConnection(conn){
@@ -135,11 +134,11 @@ class tileInstance{
 		this.zoomParams.lat0 = (-180*(ynorm-0.5) / this.zoomParams.scale) + this.zoomParams.lat0;
 		this.zoomParams.lon0 = ( 360*(xnorm-0.5) / this.zoomParams.scale) + this.zoomParams.lon0;
 		this.zoomParams.scale = this.zoomParams.scale *1.2;
-		this.clear();
-		this.drawMap();
 		for (const callRecord of this.callRecords) { 
 			callRecord.p = this.px(mhToLatLong(callRecord.sq));
 		}
+		this.clear();
+		this.drawMap();
 		this.redraw(true); // full redraw
 		this.redraw(false); // redraws highlights only
 	}
