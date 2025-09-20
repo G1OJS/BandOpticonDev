@@ -21,9 +21,9 @@ export function addSpot(spot) {
 	let bandMode = spot.b+"-"+spot.md;
 	let tile = tiles.get(bandMode) || new tileInstance(bandMode);
 	let isHl = (spot.sc == myCall || spot.rc == myCall);
-	let sInfo = {call:spot.sc, sq:spot.sl, txrx:'tx', isHl:isHl};
+	let sInfo = {call:spot.sc, sq:spot.sl, tx:true, rx:false, isHl:isHl};
 	tile.recordCall(sInfo, false);
-	let rInfo = {call:spot.rc, sq:spot.rl, txrx:'rx', isHl:isHl};
+	let rInfo = {call:spot.rc, sq:spot.rl, tx:false, rx:true, isHl:isHl};
 	tile.recordCall(rInfo, false);
 	tile.recordConnection(sInfo,rInfo);
 	tile.redraw(false) // redraws highlights only
@@ -58,9 +58,8 @@ class tileInstance{
 	recordCall(cInfo){
 		let callRecord = this.callRecords.get(cInfo.call);
 		if (!callRecord) {
-			let sq = cInfo.sq;
-			callRecord = {p:this.px(mhToLatLong(sq)), sq:sq, tx:cInfo.txrx=='tx',rx:cInfo.txrx=='rx', isHl:cInfo.isHl};
-			this.callRecords.set(cInfo.call, callRecord);
+			callRecord = {p:this.px(mhToLatLong(cInfo.sq)), sq:cInfo.sq, tx:cInfo.tx, rx:cInfo.rx, isHl:cInfo.isHl};
+			this.callRecords.set(cInfo.call, callRecord);//
 		}
 		callRecord.tx ||= cInfo.txrx=='tx';
 		callRecord.rx ||= cInfo.txrx=='rx';
@@ -80,7 +79,7 @@ class tileInstance{
 	recordConnection(sInfo, rInfo){
 		let conn = sInfo.call+"|"+rInfo.call
 		let connRecord = this.connRecords.get(conn) || this.connRecords.set(conn, {isHl:(sInfo.isHl || rInfo.isHl)});
-//		this.connRecords.set(conn, {isHl:(sInfo.isHl || rInfo.isHl)});
+		this.connRecords.set(conn, {isHl:(sInfo.isHl || rInfo.isHl)});
 		this.drawConnection(conn)
 	}
 	drawConnection(conn){
@@ -95,11 +94,11 @@ class tileInstance{
 		this.ctx.stroke();
 	}
 	redraw(redrawAll){
-		for (const callRecord of this.callRecords) { 
-			if(callRecord.hl || redrawAll) this.drawCall(this.ctx, callRecord);
+		for (const [call, callRecord] of this.callRecords.entries()) { 
+			if(callRecord.hl || redrawAll) this.drawCall(call);
 		}
-		for (const connRecord of this.connRecords.keys()){
-			if(connRecord.hl || redrawAll) this.drawConenction(this.ctx, connRecord);
+		for (const [conn, connRecord] of this.connRecords.entries()){
+			if(connRecord.hl || redrawAll) this.drawConnection(conn);
 		}
 	}
 	drawMap(){
@@ -108,18 +107,18 @@ class tileInstance{
 		worldGeoJSON?.features.forEach(feature => {
 			const geom = feature.geometry;
 			if (geom.type === 'Polygon') {
-				this.drawPolygons(geom.coordinates, this.ctx);
+				this.drawPolygons(geom.coordinates);
 			} else if (geom.type === 'MultiPolygon') {
 				geom.coordinates.forEach(polygon => this.drawPolygons(polygon));
 			}
 		});
 	}
-	drawPolygons(polys, ctx) {
+	drawPolygons(polys) {
 		polys.forEach(poly => {
 			this.ctx.beginPath();
 			poly.forEach(([lon, lat], i) => {
 			let p = this.px([lat, lon]);
-			i === 0 ? this.ctx.moveTo(p[0], p[1]) : this.ctx.lineTo(p[0], p[1]);
+				i === 0 ? this.ctx.moveTo(p[0], p[1]) : this.ctx.lineTo(p[0], p[1]);
 			});
 			this.ctx.closePath();
 			this.ctx.stroke();
@@ -138,7 +137,7 @@ class tileInstance{
 		this.clear();
 		this.drawMap();
 		for (const callRecord of this.callRecords) { 
-			callRecord.p = this.px(mhToLatLong(callRecord.sq));
+			callRecord[1].p = this.px(mhToLatLong(callRecord[1].sq));
 		}
 		this.redraw(true); // full redraw
 		this.redraw(false); // redraws highlights only
