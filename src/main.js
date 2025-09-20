@@ -1,19 +1,11 @@
 import {connectToFeed} from './mqtt.js';
 import {loadConfig, updateMyCall, updateSquaresList} from './config.js';
-import {zoom} from './plots.js'
+import {tileInstanceances} from './plots.js'
 
 document.getElementById('myCallInput').addEventListener('change', () => { updateMyCall(); resetData();});
 document.getElementById('homeSquaresInput').addEventListener('change', () => {updateSquaresList();resetData();});
 
-for (let idx=0;idx<100;idx++) {
-  var tile  = document.querySelector('.tileTemplate').content.cloneNode(true);
-  document.querySelector('#bandsGrid').appendChild(tile);
-}
-export var callLocations = new Map();
-export var tiles = new Map();
-export var freeTiles = Array.from(document.querySelectorAll('.tile')); 
-
-function bandOf(el) 	{return el.closest('.tile')?.dataset.band ?? null;}
+function bandOf(el) 	{return el.closest('.tile')?.dataset.tileDataSetName ?? null;}
 function actionOf(el) 	{return el.dataset.action || null;}
 
 export var view = "Home";
@@ -37,7 +29,7 @@ document.getElementById('legendMarkerTxRx').style.background = colours.txrx;
 document.getElementById('moreColumns').addEventListener("click", function (e) {addRemoveColumns('more')});
 document.getElementById('fewerColumns').addEventListener("click", function (e) {addRemoveColumns('fewer')});
 
-setInterval(() => sortAndUpdateTiles(), 1000);
+setInterval(() => sortAndUpdateTileElements(), 1000);
 
 const mainView = document.querySelector('#mainView');
 const bandsGrid = document.querySelector('#bandsGrid');
@@ -45,17 +37,15 @@ const mainViewTray = document.querySelector('#mainViewTray');
 bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='minimise') minimiseTile(e.target.closest('.tile'));});
 mainViewTray.addEventListener('click', e => {if(e.target.classList?.contains('bandButton')) restoreTile(e.target);});
 bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='setSingle') setSingle(e.target.closest('.tile'));});
-bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='zoom') zoom(e);});
-mainView.addEventListener('click', e => {if(actionOf(e.target)=='home') restoreAll(e.target.closest('.tile'));}); 	// split here to remember columns and tray bands
+bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='zoom') {tileInstanceances.get(e.target.dataset.name).zoom(e);}});
+document.addEventListener('click', e => {if(actionOf(e.target)=='home') restoreAll(e.target.closest('.tile'));}); 	// split here to remember columns and tray bands
 
 mainViewTray.addEventListener("click", e => {if(actionOf(e.target)=='hideHeaderAndFooter') hideHeaderAndFooter(e.target)});
 mainViewTray.addEventListener("click", e => {if(actionOf(e.target)=='restoreHeaderAndFooter') restoreHeaderAndFooter(e.target);}); // 
 
 function resetData(){
 	for (const el of document.querySelectorAll('.tile')) el.classList.add('hidden');
-	tiles = new Map();
-	callLocations = new Map(); 
-	freeTiles = Array.from(document.querySelectorAll('.tile'));
+	tileInstanceances = new Map();
 }
 
 function hideHeaderAndFooter(clicked){
@@ -77,13 +67,12 @@ function checkMinimisedBands(){
 }
 
 function minimiseTile(el) {
-  const band = el.dataset.band;
   el.classList.add('hidden');
-  let btn = mainViewTray.querySelector(`[data-band="${band}"]`);
+  let btn = mainViewTray.querySelector('#'+el.dataset.name);
   if (!btn) {
     btn = document.createElement('button');
 	btn.classList.add('control', 'windowBarButton', 'bandButton');
-    btn.dataset.band = band;
+    btn.dataset.name = el.dataset.name;
     btn.textContent = band;
     mainViewTray.appendChild(btn);
 	checkMinimisedBands();
@@ -97,7 +86,7 @@ function restoreAll(el){
 	checkMinimisedBands();
 }
 function restoreTile(btn_el) {
-    const band = btn_el.dataset.band;
+    const band = btn_el.dataset.tileDataSetName;
 //	console.log("Restore "+band);
     let tile_el = bandsGrid.querySelector(`[data-band="${band}"]`);
     tile_el.classList.remove('hidden');
@@ -123,9 +112,9 @@ function setSingle(el){
 	el.querySelector('.home').classList.remove('hidden');
 	el.querySelector('.maximise').classList.add('hidden');
 	el.querySelector('.minimise').classList.add('hidden');
-	const band = el.dataset.band;
+	const band = el.dataset.tileDataSetName;
 	for (const el2 of bandsGrid.querySelectorAll('.tile')) {
-		if(el2.dataset.band && el2.dataset.band !=band) minimiseTile(el2);
+		if(el2.dataset.tileDataSetName && el2.dataset.tileDataSetName !=band) minimiseTile(el2);
 	}
 	document.getElementById('home-button').classList.remove("inactive");
 	document.getElementById('moreColumns').classList.add("inactive");
@@ -154,12 +143,10 @@ function addRemoveColumns(direction){
 	console.log(bandsGrid.elementStyle);
 }
 
-function sortAndUpdateTiles() {
-    const orderedBands = Array.from(tiles.keys()).sort((a, b) => wavelength(b) - wavelength(a));
-    for (const band of orderedBands) {
-        const chart = tiles.get(band);
-        const tile  = bandsGrid.querySelector(`.tile[data-band="${band}"]`);
-        bandsGrid.appendChild(tile);
+function sortAndUpdateTileElements() {
+    const order = Array.from(tileInstanceances.keys()).sort((a, b) => wavelength(b) - wavelength(a));
+    for (const o of order) {
+        bandsGrid.append(tileInstanceances.get(o).tileElement);
     }
     setMainViewHeight();
 }

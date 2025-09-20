@@ -1,6 +1,7 @@
 import {myCall} from './config.js';
 import {mhToLatLong} from './geo.js'
-import {colours, view, setMainViewHeight, tiles, freeTiles, callLocations} from './main.js'
+import {colours, view, setMainViewHeight} from './main.js'
+export let tileInstanceances = new Map();
 
 let worldGeoJSON = null;
 
@@ -12,48 +13,46 @@ fetch('https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_110m_admin_0_
 worldGeoJSON = data;
 });
 
-export function zoom(e){
-	let tile = tiles.get(e.target.closest('.tile').dataset.band);
-	tile.zoom(e);
-}
-
 export function addSpot(spot) {
 	let bandMode = spot.b+"-"+spot.md;
-	let tile = tiles.get(bandMode) || new tileInstance(bandMode);
+	let tileInstance = tileInstanceances.get(bandMode) || new tile(bandMode);
 	let isHl = (spot.sc == myCall || spot.rc == myCall);
 	let sInfo = {call:spot.sc, sq:spot.sl, tx:true, rx:false, isHl:isHl};
-	tile.recordCall(sInfo, false);
+	tileInstance.recordCall(sInfo, false);
 	let rInfo = {call:spot.rc, sq:spot.rl, tx:false, rx:true, isHl:isHl};
-	tile.recordCall(rInfo, false);
-	tile.recordConnection(sInfo,rInfo);
-	tile.redraw(false) // redraws highlights only
+	tileInstance.recordCall(rInfo, false);
+	tileInstance.recordConnection(sInfo,rInfo);
+	tileInstance.redraw(false) // redraws highlights only
 }
 
-class tileInstance{
+class tile{
 	constructor(tileDataSetName) {
-		this.tile = freeTiles.pop(); // change this to use createelement & remove the loop from the top of main (still use template in HTML?)
-		this.canvas = this.tile.querySelector('canvas');
-		this.tile.dataset.band = tileDataSetName;
-		this.tile.querySelector('.tileTitle').textContent = tileDataSetName;	
-		this.ctx = this.canvas.getContext('2d');
-		this.canvasSize = {w:1200, h:600};
+		let tileInstance = tileInstanceances.get(tileDataSetName);
+		if(!tileInstance){
+			this.tileElement = document.querySelector('#tileTemplate').content.cloneNode(true).querySelector('div');
+			document.querySelector('#bandsGrid').append(this.tileElement);
+			tileInstanceances.set(tileDataSetName, this); // add this new instance to list of tile instances in map
+		}
+		this.tileTitleElement = this.tileElement.querySelector('.tileTitle'); 
+		this.tileTitleElement.textContent = tileDataSetName;
+		this.canvasElement = this.tileElement.querySelector('canvas');
+		this.canvasElement.dataset.name = tileDataSetName; // clicking canvas allows finding this instance in map
+		this.ctx = this.canvasElement.getContext('2d');
+		this.canvasElementSize = {w:1200, h:600};
 		this.zoomParams = {scale:1.2, lat0:0, lon0:0};
 		this.bgCol = 'white';
 		this.callRecords = new Map();
 		this.connRecords = new Map();
 		this.drawMap();
-		if (view == "Home") this.tile.classList.remove('hidden');
-		tiles.set(tileDataSetName, this);
-		console.log("Ceated tile for "+tileDataSetName);
-		this.flag=false;
+		if (view == "Home") this.tileElement.classList.remove('hidden');
 	}
 	px(ll){
 		let z = this.zoomParams;
 		let xnorm = 0.5 + z.scale*(ll[1] - z.lon0)/360;
 		let ynorm = 0.5 + z.scale*(ll[0] - z.lat0)/180;
-		let x = this.canvasSize.w*xnorm;
-		let y = this.canvasSize.h*ynorm;
-		return [x,this.canvasSize.h-y];
+		let x = this.canvasElementSize.w*xnorm;
+		let y = this.canvasElementSize.h*ynorm;
+		return [x,this.canvasElementSize.h-y];
 	}
 	recordCall(cInfo){
 		let callRecord = this.callRecords.get(cInfo.call);
@@ -87,7 +86,7 @@ class tileInstance{
 		let sInfo = this.callRecords.get(conn.split("|")[0]); 
 		let rInfo = this.callRecords.get(conn.split("|")[1]); 
 		this.ctx.strokeStyle = col;
-		this.ctx.lineWidth=1;
+		this.ctx.lineWidth=2;
 		this.ctx.beginPath();
 		this.ctx.moveTo(sInfo.p[0],sInfo.p[1]);
 		this.ctx.lineTo(rInfo.p[0],rInfo.p[1]);
@@ -99,7 +98,6 @@ class tileInstance{
 		}
 		for (const [conn, connRecord] of this.connRecords.entries()){
 			if(connRecord.isHl || redrawAll) this.drawConnection(conn);
-
 		}
 	}
 	drawMap(){
@@ -129,7 +127,7 @@ class tileInstance{
 		this.ctx.clearRect(0,0, 2000,2000);
 	}
 	zoom(e){
-		let rect = this.canvas.getBoundingClientRect();
+		let rect = this.canvasElement.getBoundingClientRect();
 		let xnorm = (e.clientX - rect.left) / (rect.right-rect.left);
 		let ynorm = (e.clientY - rect.top)/ (rect.bottom-rect.top);	 
 		this.zoomParams.lat0 = (-180*(ynorm-0.5) / this.zoomParams.scale) + this.zoomParams.lat0;
