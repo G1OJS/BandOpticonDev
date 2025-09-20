@@ -134,8 +134,9 @@ class tileInstance{
 		this.zoomParams.lat0 = (-180*(ynorm-0.5) / this.zoomParams.scale) + this.zoomParams.lat0;
 		this.zoomParams.lon0 = ( 360*(xnorm-0.5) / this.zoomParams.scale) + this.zoomParams.lon0;
 		this.zoomParams.scale = this.zoomParams.scale *1.2;
-		for (const callRecord of this.callRecords) { 
+		for (var [call, callRecord] of this.callRecords.entries()) { 
 			callRecord.p = this.px(mhToLatLong(callRecord.sq));
+			this.callRecords.set(call, callRecord);
 		}
 		this.clear();
 		this.drawMap();
