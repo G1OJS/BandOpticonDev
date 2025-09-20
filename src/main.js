@@ -1,11 +1,10 @@
 import {connectToFeed} from './mqtt.js';
 import {loadConfig, updateMyCall, updateSquaresList} from './config.js';
-import {tileInstanceances} from './plots.js'
+import {tileInstances} from './plots.js'
 
 document.getElementById('myCallInput').addEventListener('change', () => { updateMyCall(); resetData();});
 document.getElementById('homeSquaresInput').addEventListener('change', () => {updateSquaresList();resetData();});
 
-function bandOf(el) 	{return el.closest('.tile')?.dataset.tileDataSetName ?? null;}
 function actionOf(el) 	{return el.dataset.action || null;}
 
 export var view = "Home";
@@ -29,23 +28,23 @@ document.getElementById('legendMarkerTxRx').style.background = colours.txrx;
 document.getElementById('moreColumns').addEventListener("click", function (e) {addRemoveColumns('more')});
 document.getElementById('fewerColumns').addEventListener("click", function (e) {addRemoveColumns('fewer')});
 
-setInterval(() => sortAndUpdateTileElements(), 1000);
+setInterval(() => sortTiles(), 1000);
 
 const mainView = document.querySelector('#mainView');
-const bandsGrid = document.querySelector('#bandsGrid');
+const tilesGrid = document.querySelector('#tilesGrid');
 const mainViewTray = document.querySelector('#mainViewTray');
-bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='minimise') minimiseTile(e.target.closest('.tile'));});
-mainViewTray.addEventListener('click', e => {if(e.target.classList?.contains('bandButton')) restoreTile(e.target);});
-bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='setSingle') setSingle(e.target.closest('.tile'));});
-bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='zoom') {tileInstanceances.get(e.target.dataset.name).zoom(e);}});
-document.addEventListener('click', e => {if(actionOf(e.target)=='home') restoreAll(e.target.closest('.tile'));}); 	// split here to remember columns and tray bands
-
+document.addEventListener('click', e => {if(actionOf(e.target)=='home') restoreAll();}); 	// split here to remember columns and tray bands
+tilesGrid.addEventListener('click', e => {if(actionOf(e.target)=='minimise') minimiseTile(e.target.closest('.tile'));});
+mainViewTray.addEventListener('click', e => {if(e.target.classList?.contains('tileButton')) restoreTileFromButton(e.target);});
+tilesGrid.addEventListener('click', e => {if(actionOf(e.target)=='setSingle') setSingle(e.target.closest('.tile'));});
 mainViewTray.addEventListener("click", e => {if(actionOf(e.target)=='hideHeaderAndFooter') hideHeaderAndFooter(e.target)});
 mainViewTray.addEventListener("click", e => {if(actionOf(e.target)=='restoreHeaderAndFooter') restoreHeaderAndFooter(e.target);}); // 
 
+tilesGrid.addEventListener('click', e => {if(actionOf(e.target)=='zoom') {tileInstances.get(e.target.id).zoom(e);}});
+
 function resetData(){
 	for (const el of document.querySelectorAll('.tile')) el.classList.add('hidden');
-	tileInstanceances = new Map();
+	tileInstances = new Map();
 }
 
 function hideHeaderAndFooter(clicked){
@@ -59,69 +58,78 @@ function restoreHeaderAndFooter(clicked){
 	for (const el of document.querySelectorAll('.hideForMaxView')) el.classList.remove('hidden');
 }
 
-function checkMinimisedBands(){
+function checkMinimisedTiles(){
 	let homeButton = document.getElementById('home-button');
-	let nHidden = mainViewTray.querySelectorAll('.bandButton').length;
+	let nHidden = mainViewTray.querySelectorAll('.tileButton').length;
 	console.log("nHidden "+nHidden);
 	if(nHidden > 2) {homeButton.classList.remove("inactive");} else {homeButton.classList.add("inactive");}
 }
 
-function minimiseTile(el) {
-  el.classList.add('hidden');
-  let btn = mainViewTray.querySelector('#'+el.dataset.name);
+function minimiseTile(tileElement) {
+  let tileName = tileElement.querySelector('canvas').id;
+  console.log("minimise " + tileName)
+  tileElement.classList.add('hidden');
+  let btn = mainViewTray.querySelector('#btn'+tileName);
   if (!btn) {
     btn = document.createElement('button');
-	btn.classList.add('control', 'windowBarButton', 'bandButton');
-    btn.dataset.name = el.dataset.name;
-    btn.textContent = band;
+	btn.classList.add('control', 'windowBarButton', 'tileButton');
+    btn.id = "btn"+tileName;
+    btn.textContent = tileName;
     mainViewTray.appendChild(btn);
-	checkMinimisedBands();
+	checkMinimisedTiles();
   }
 }
-function restoreAll(el){
+function restoreAll(){
 	// split here to remember columns and tray bands
-//	console.log("Restore all");
-	for (const el of mainViewTray.querySelectorAll('.bandButton')) {restoreTile(el);};
-	for (const el of mainView.querySelectorAll('.tile')) {resetTileControls(el);};
-	checkMinimisedBands();
+	console.log("Restore all");
+	for (const tileElement of tilesGrid.querySelectorAll('.tile')) {restoreTile(tileElement);}
+//	checkMinimisedTiles();
 }
-function restoreTile(btn_el) {
-    const band = btn_el.dataset.tileDataSetName;
-//	console.log("Restore "+band);
-    let tile_el = bandsGrid.querySelector(`[data-band="${band}"]`);
-    tile_el.classList.remove('hidden');
-	resetTileControls(tile_el);
-    btn_el.remove();
+function restoreTile(tileElement) {
+    tileElement.classList.remove('hidden');
+	resetTileControls(tileElement);
+	let tileName = tileElement.querySelector('canvas').id;
+	let btn = mainViewTray.querySelector('#btn'+tileName);
+    if(btn) btn.remove();
     view="Home";
 	document.getElementById('moreColumns').classList.remove("inactive");
 	document.getElementById('fewerColumns').classList.remove("inactive");
 	nColumns = 3;
-	bandsGrid.setAttribute("style", "grid-template-columns: 1fr 1fr 1fr;");
-	sortAndUpdateTiles();
-	checkMinimisedBands();
+	tilesGrid.setAttribute("style", "grid-template-columns: 1fr 1fr 1fr;");
+	sortTiles();
+	checkMinimisedTiles();
 }
-function resetTileControls(tile_el){
-	tile_el.querySelector('.home').classList.add('hidden'); 
-	tile_el.querySelector('.maximise').classList.remove('hidden');
-	tile_el.querySelector('.minimise').classList.remove('hidden');
-	tile_el.querySelector('canvas').style = 'cursor:default;';
+function restoreTileFromButton(buttonElement){
+	let canvasElement = tilesGrid.querySelector("#"+buttonElement.id.replace("btn",""));
+	console.log(canvasElement.id);
+	let tileElement = canvasElement.closest('.tile');
+	restoreTile(tileElement);
+	for (const tileElement of tilesGrid.querySelectorAll('.tile')) resetTileControls(tileElement);
 }
-function setSingle(el){
+
+function resetTileControls(tileElement){
+	tileElement.querySelector('.home').classList.add('hidden'); 
+	tileElement.querySelector('.maximise').classList.remove('hidden');
+	tileElement.querySelector('.minimise').classList.remove('hidden');
+	tileElement.querySelector('canvas').style = 'cursor:default;';
+}
+function setSingle(tileElement){
 	if(view == "Single") return;
 	view = "Single"
-	el.querySelector('.home').classList.remove('hidden');
-	el.querySelector('.maximise').classList.add('hidden');
-	el.querySelector('.minimise').classList.add('hidden');
-	const band = el.dataset.tileDataSetName;
-	for (const el2 of bandsGrid.querySelectorAll('.tile')) {
-		if(el2.dataset.tileDataSetName && el2.dataset.tileDataSetName !=band) minimiseTile(el2);
+	const tileName = tileElement.querySelector('canvas').id;
+	tileElement.querySelector('.home').classList.remove('hidden');
+	tileElement.querySelector('.maximise').classList.add('hidden');
+	tileElement.querySelector('.minimise').classList.add('hidden');
+	console.log("minimise all but "+tileName);
+	for (const cvs of tilesGrid.querySelectorAll('canvas')) {
+		if(cvs.id !=tileName) minimiseTile(cvs.closest('.tile'));
 	}
 	document.getElementById('home-button').classList.remove("inactive");
 	document.getElementById('moreColumns').classList.add("inactive");
 	document.getElementById('fewerColumns').classList.add("inactive");
-	bandsGrid.setAttribute("style", "grid-template-columns: 1fr;");	
+	tilesGrid.setAttribute("style", "grid-template-columns: 1fr;");	
 	console.log("Set view single");
-	checkMinimisedBands();
+	checkMinimisedTiles();
 }
 export function setMainViewHeight(){
 	let happ = document.getElementById('app').clientHeight;
@@ -139,14 +147,14 @@ function addRemoveColumns(direction){
 	if(view !="Home") return;
 	if (direction == "more") nColumns += (nColumns <10);
 	if (direction == "fewer") nColumns -= (nColumns >1);
-	bandsGrid.setAttribute("style", "grid-template-columns: repeat("+nColumns+",1fr)");
-	console.log(bandsGrid.elementStyle);
+	tilesGrid.setAttribute("style", "grid-template-columns: repeat("+nColumns+",1fr)");
+	console.log(tilesGrid.elementStyle);
 }
 
-function sortAndUpdateTileElements() {
-    const order = Array.from(tileInstanceances.keys()).sort((a, b) => wavelength(b) - wavelength(a));
+function sortTiles() {
+    const order = Array.from(tileInstances.keys()).sort((a, b) => wavelength(b) - wavelength(a));
     for (const o of order) {
-        bandsGrid.append(tileInstanceances.get(o).tileElement);
+        tilesGrid.append(tileInstances.get(o).tileElement);
     }
     setMainViewHeight();
 }

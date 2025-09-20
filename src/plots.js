@@ -1,7 +1,7 @@
 import {myCall} from './config.js';
 import {mhToLatLong} from './geo.js'
 import {colours, view, setMainViewHeight} from './main.js'
-export let tileInstanceances = new Map();
+export let tileInstances = new Map();
 
 let worldGeoJSON = null;
 
@@ -14,8 +14,8 @@ worldGeoJSON = data;
 });
 
 export function addSpot(spot) {
-	let bandMode = spot.b+"-"+spot.md;
-	let tileInstance = tileInstanceances.get(bandMode) || new tile(bandMode);
+	let bandMode = "T"+spot.b.replace(".","pt")+spot.md;
+	let tileInstance = tileInstances.get(bandMode) || new tile(bandMode);
 	let isHl = (spot.sc == myCall || spot.rc == myCall);
 	let sInfo = {call:spot.sc, sq:spot.sl, tx:true, rx:false, isHl:isHl};
 	tileInstance.recordCall(sInfo, false);
@@ -27,16 +27,13 @@ export function addSpot(spot) {
 
 class tile{
 	constructor(tileDataSetName) {
-		let tileInstance = tileInstanceances.get(tileDataSetName);
-		if(!tileInstance){
-			this.tileElement = document.querySelector('#tileTemplate').content.cloneNode(true).querySelector('div');
-			document.querySelector('#bandsGrid').append(this.tileElement);
-			tileInstanceances.set(tileDataSetName, this); // add this new instance to list of tile instances in map
-		}
+		this.tileElement = document.querySelector('#tileTemplate').content.cloneNode(true).querySelector('div');
+		document.querySelector('#tilesGrid').append(this.tileElement);
+		tileInstances.set(tileDataSetName, this); // add this new instance to list of tile instances in map
 		this.tileTitleElement = this.tileElement.querySelector('.tileTitle'); 
-		this.tileTitleElement.textContent = tileDataSetName;
+		this.tileTitleElement.textContent = tileDataSetName.replace("T","").replace("m","m ").replace("pt",".");
 		this.canvasElement = this.tileElement.querySelector('canvas');
-		this.canvasElement.dataset.name = tileDataSetName; // clicking canvas allows finding this instance in map
+		this.canvasElement.id = tileDataSetName; // clicking canvas allows finding this instance in map
 		this.ctx = this.canvasElement.getContext('2d');
 		this.canvasElementSize = {w:1200, h:600};
 		this.zoomParams = {scale:1.2, lat0:0, lon0:0};
@@ -45,6 +42,7 @@ class tile{
 		this.connRecords = new Map();
 		this.drawMap();
 		if (view == "Home") this.tileElement.classList.remove('hidden');
+		this.canvasElement.addEventListener("move", e => {this.checkIfNear(e)}); // 
 	}
 	px(ll){
 		let z = this.zoomParams;
@@ -145,6 +143,21 @@ class tile{
 		this.drawMap();
 		this.redraw(true); // full redraw
 		this.redraw(false); // redraws highlights only
+	}
+	checkIfNear(e){
+		let rect = this.canvasElement.getBoundingClientRect();
+		let xp = e.clientX - rect.left;
+		let yp = e.clientY - rect.top;	
+		console.log(xp,yp);
+		for (const [call, callRecord] of this.callRecords.entries()) { 
+			let p = callRecord.p;
+			if(abs(p.x - xp) < 5 && abs(p.y - yp)<5){
+				console.log("hit");
+			}
+		}
+		
+		
+		
 	}
 }
 
