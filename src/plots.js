@@ -95,10 +95,10 @@ class tileInstance{
 	}
 	redraw(redrawAll){
 		for (const [call, callRecord] of this.callRecords.entries()) { 
-			if(callRecord[1].hl || redrawAll) this.drawCall(call);
+			if(callRecord.isHl || redrawAll) this.drawCall(call);
 		}
 		for (const [conn, connRecord] of this.connRecords.entries()){
-			if(connRecord[1].hl || redrawAll) this.drawConnection(conn);
+			if(connRecord.isHl || redrawAll) this.drawConnection(conn);
 
 		}
 	}
