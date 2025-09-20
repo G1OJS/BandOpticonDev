@@ -34,6 +34,10 @@ class tile{
 		this.tileTitleElement.textContent = tileDataSetName.replace("T","").replace("m","m ").replace("pt",".");
 		this.canvasElement = this.tileElement.querySelector('canvas');
 		this.canvasElement.id = tileDataSetName; // clicking canvas allows finding this instance in map
+		let band = this.tileTitleElement.textContent.split(" ")[0];
+		let wl = parseInt(band.split("m")[0]);
+		if (band.search("cm") > 0) wl /= 100;
+		this.wavelength = wl;
 		this.ctx = this.canvasElement.getContext('2d');
 		this.canvasElementSize = {w:1200, h:600};
 		this.zoomParams = {scale:1.2, lat0:0, lon0:0};
@@ -155,9 +159,6 @@ class tile{
 				console.log("hit");
 			}
 		}
-		
-		
-		
 	}
 }
 

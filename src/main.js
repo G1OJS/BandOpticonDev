@@ -83,7 +83,6 @@ function restoreAll(){
 	// split here to remember columns and tray bands
 	console.log("Restore all");
 	for (const tileElement of tilesGrid.querySelectorAll('.tile')) {restoreTile(tileElement);}
-//	checkMinimisedTiles();
 }
 function restoreTile(tileElement) {
     tileElement.classList.remove('hidden');
@@ -152,21 +151,12 @@ function addRemoveColumns(direction){
 }
 
 function sortTiles() {
-    const order = Array.from(tileInstances.keys()).sort((a, b) => wavelength(b) - wavelength(a));
-    for (const o of order) {
-        tilesGrid.append(tileInstances.get(o).tileElement);
-    }
+    const tileInstancesOrdered = Array.from(tileInstances).sort((a, b) => b[1].wavelength - a[1].wavelength);
+    for (const t of tileInstancesOrdered) tilesGrid.append(t[1].tileElement);
     setMainViewHeight();
 }
 
-function wavelength(band) {
-    let wl = parseInt(band.split("m")[0]);
-    if (band.search("cm") > 0) {
-        return wl / 100
-    } else {
-        return wl
-    }
-}
+
 
 
 loadConfig();
