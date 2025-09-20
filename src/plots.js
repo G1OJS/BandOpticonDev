@@ -13,7 +13,7 @@ worldGeoJSON = data;
 });
 
 export function zoom(e){
-	let tile = tiles.get(e.target.closest('.bandTile').dataset.band);
+	let tile = tiles.get(e.target.closest('.tile').dataset.band);
 	tile.zoom(e);
 }
 
@@ -31,10 +31,10 @@ export function addSpot(spot) {
 
 class tileInstance{
 	constructor(tileDataSetName) {
-		this.bandTile = freeTiles.pop(); // change this to use createelement & remove the loop from the top of main (still use template in HTML?)
-		this.canvas = this.bandTile.querySelector('canvas');
-		this.bandTile.dataset.band = tileDataSetName;
-		this.bandTile.querySelector('.bandTileTitle').textContent = tileDataSetName;	
+		this.tile = freeTiles.pop(); // change this to use createelement & remove the loop from the top of main (still use template in HTML?)
+		this.canvas = this.tile.querySelector('canvas');
+		this.tile.dataset.band = tileDataSetName;
+		this.tile.querySelector('.tileTitle').textContent = tileDataSetName;	
 		this.ctx = this.canvas.getContext('2d');
 		this.canvasSize = {w:1200, h:600};
 		this.zoomParams = {scale:1.2, lat0:0, lon0:0};
@@ -42,7 +42,7 @@ class tileInstance{
 		this.callRecords = new Map();
 		this.connRecords = new Map();
 		this.drawMap();
-		if (view == "Home") this.bandTile.classList.remove('hidden');
+		if (view == "Home") this.tile.classList.remove('hidden');
 		tiles.set(tileDataSetName, this);
 		console.log("Ceated tile for "+tileDataSetName);
 		this.flag=false;

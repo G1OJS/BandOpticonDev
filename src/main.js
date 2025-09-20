@@ -6,14 +6,14 @@ document.getElementById('myCallInput').addEventListener('change', () => { update
 document.getElementById('homeSquaresInput').addEventListener('change', () => {updateSquaresList();resetData();});
 
 for (let idx=0;idx<100;idx++) {
-  var tile  = document.querySelector('.bandTileTemplate').content.cloneNode(true);
+  var tile  = document.querySelector('.tileTemplate').content.cloneNode(true);
   document.querySelector('#bandsGrid').appendChild(tile);
 }
 export var callLocations = new Map();
 export var tiles = new Map();
-export var freeTiles = Array.from(document.querySelectorAll('.bandTile')); 
+export var freeTiles = Array.from(document.querySelectorAll('.tile')); 
 
-function bandOf(el) 	{return el.closest('.bandTile')?.dataset.band ?? null;}
+function bandOf(el) 	{return el.closest('.tile')?.dataset.band ?? null;}
 function actionOf(el) 	{return el.dataset.action || null;}
 
 export var view = "Home";
@@ -42,20 +42,20 @@ setInterval(() => sortAndUpdateTiles(), 1000);
 const mainView = document.querySelector('#mainView');
 const bandsGrid = document.querySelector('#bandsGrid');
 const mainViewTray = document.querySelector('#mainViewTray');
-bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='minimise') minimiseTile(e.target.closest('.bandTile'));});
+bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='minimise') minimiseTile(e.target.closest('.tile'));});
 mainViewTray.addEventListener('click', e => {if(e.target.classList?.contains('bandButton')) restoreTile(e.target);});
-bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='setSingle') setSingle(e.target.closest('.bandTile'));});
+bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='setSingle') setSingle(e.target.closest('.tile'));});
 bandsGrid.addEventListener('click', e => {if(actionOf(e.target)=='zoom') zoom(e);});
-mainView.addEventListener('click', e => {if(actionOf(e.target)=='home') restoreAll(e.target.closest('.bandTile'));}); 	// split here to remember columns and tray bands
+mainView.addEventListener('click', e => {if(actionOf(e.target)=='home') restoreAll(e.target.closest('.tile'));}); 	// split here to remember columns and tray bands
 
 mainViewTray.addEventListener("click", e => {if(actionOf(e.target)=='hideHeaderAndFooter') hideHeaderAndFooter(e.target)});
 mainViewTray.addEventListener("click", e => {if(actionOf(e.target)=='restoreHeaderAndFooter') restoreHeaderAndFooter(e.target);}); // 
 
 function resetData(){
-	for (const el of document.querySelectorAll('.bandTile')) el.classList.add('hidden');
+	for (const el of document.querySelectorAll('.tile')) el.classList.add('hidden');
 	tiles = new Map();
 	callLocations = new Map(); 
-	freeTiles = Array.from(document.querySelectorAll('.bandTile'));
+	freeTiles = Array.from(document.querySelectorAll('.tile'));
 }
 
 function hideHeaderAndFooter(clicked){
@@ -93,7 +93,7 @@ function restoreAll(el){
 	// split here to remember columns and tray bands
 //	console.log("Restore all");
 	for (const el of mainViewTray.querySelectorAll('.bandButton')) {restoreTile(el);};
-	for (const el of mainView.querySelectorAll('.bandTile')) {resetTileControls(el);};
+	for (const el of mainView.querySelectorAll('.tile')) {resetTileControls(el);};
 	checkMinimisedBands();
 }
 function restoreTile(btn_el) {
@@ -124,7 +124,7 @@ function setSingle(el){
 	el.querySelector('.maximise').classList.add('hidden');
 	el.querySelector('.minimise').classList.add('hidden');
 	const band = el.dataset.band;
-	for (const el2 of bandsGrid.querySelectorAll('.bandTile')) {
+	for (const el2 of bandsGrid.querySelectorAll('.tile')) {
 		if(el2.dataset.band && el2.dataset.band !=band) minimiseTile(el2);
 	}
 	document.getElementById('home-button').classList.remove("inactive");
@@ -158,7 +158,7 @@ function sortAndUpdateTiles() {
     const orderedBands = Array.from(tiles.keys()).sort((a, b) => wavelength(b) - wavelength(a));
     for (const band of orderedBands) {
         const chart = tiles.get(band);
-        const tile  = bandsGrid.querySelector(`.bandTile[data-band="${band}"]`);
+        const tile  = bandsGrid.querySelector(`.tile[data-band="${band}"]`);
         bandsGrid.appendChild(tile);
     }
     setMainViewHeight();
